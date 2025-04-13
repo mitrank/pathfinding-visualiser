@@ -8,12 +8,12 @@ const DynamicGrid = ({ isStartVisualise, setIsStartVisualise }) => {
   const [gridMatrix, setGridMatrix] = useState([]);
   const [animatedVisits, setAnimatedVisits] = useState(new Set());
   const [animatedDistance, setAnimatedDistance] = useState(new Array());
-
-  const start = [15, 25];
-  const end = [20, 20];
+  const [dragging, setDragging] = useState(null);
+  const [start, setStart] = useState([15, 25]);
+  const [end, setEnd] = useState([18, 28]);
+  const cellSize = 25;
 
   useEffect(() => {
-    const cellSize = 25;
     setRows(Math.floor(window.innerHeight / cellSize));
     setCols(Math.floor(window.innerWidth / cellSize));
   }, []);
@@ -33,6 +33,28 @@ const DynamicGrid = ({ isStartVisualise, setIsStartVisualise }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStartVisualise]);
 
+  const handleMouseDown = (type) => {
+    setDragging(type);
+  };
+
+  const handleMouseUp = () => {
+    setDragging(null);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!dragging) return;
+    console.log(e);
+    const gridBounds = e.target.closest(".parent-grid").getBoundingClientRect();
+    const x = Math.floor((e.clientX - gridBounds.left) / cellSize);
+    const y = Math.floor((e.clientY - gridBounds.top) / cellSize);
+
+    if (dragging == "start") {
+      setStart([y, x]);
+    } else if (dragging == "end") {
+      setEnd([y, x]);
+    }
+  };
+
   const delay = useCallback(
     (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     []
@@ -51,16 +73,15 @@ const DynamicGrid = ({ isStartVisualise, setIsStartVisualise }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStartVisualise]);
 
-  // const handleOnClickCell = (row, col) => {
-  // }
-
   return (
     <div
-      className="grid w-full h-full p-8"
+      className="parent-grid grid w-full h-full p-8"
       style={{
         gridTemplateRows: `repeat(${rows}, 1fr)`,
         gridTemplateColumns: `repeat(${cols}, 1fr)`,
       }}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
     >
       {gridMatrix.map((rowArray, row) =>
         rowArray.map((_, col) => {
@@ -69,17 +90,26 @@ const DynamicGrid = ({ isStartVisualise, setIsStartVisualise }) => {
             (distance) => distance[0] === row && distance[1] === col
           );
 
+          const isStart = row === start[0] && col === start[1];
+          const isEnd = row === end[0] && col === end[1];
+
           return (
             <div
               key={`${row}-${col}`}
               className={cn(
                 "flex justify-center items-center border border-gray-400 transition-all duration-100",
                 isVisited && "bg-amber-300",
-                isVisitedDistance && "bg-green-300",
-                row === start[0] && col === start[1] && "bg-blue-400",
-                row === end[0] && col === end[1] && "bg-red-400"
+                isVisitedDistance && "bg-green-400",
+                isStart && "bg-blue-500",
+                isEnd && "bg-red-500"
               )}
-              // onClick={() => handleOnClickCell(row, col)}
+              onMouseDown={() =>
+                isStart
+                  ? handleMouseDown("start")
+                  : isEnd
+                  ? handleMouseDown("end")
+                  : null
+              }
             />
           );
         })
